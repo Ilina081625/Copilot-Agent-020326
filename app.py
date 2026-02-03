@@ -168,6 +168,8 @@ STRINGS = {
         "no_results": "No results",
         "select_to_filter": "Select chart area to filter (if supported)",
         "style_recommended": "Recommended style",
+        "style_ai_help": "Use your current query / note / doc text as vibe signals to pick a painter style.",
+        "run": "Run",
     },
     "zh-TW": {
         "app_title": "FDA 510(k) 審查工作室 — 法規指揮中心",
@@ -288,11 +290,15 @@ STRINGS = {
         "no_results": "沒有結果",
         "select_to_filter": "選取圖表區域以篩選（若支援）",
         "style_recommended": "建議風格",
+        "style_ai_help": "使用目前查詢 / 筆記 / 文件文字作為氛圍信號，交給 AI 挑一個畫家風格。",
+        "run": "執行",
     },
 }
 
+
 def t(lang: str, key: str) -> str:
     return STRINGS.get(lang, STRINGS["en"]).get(key, key)
+
 
 # ============================================================
 # Painter styles (20)
@@ -320,8 +326,10 @@ PAINTER_STYLES = [
     {"id": "basquiat", "name": "Jean-Michel Basquiat", "accent": "#F7DC6F"},
 ]
 
+
 def jackpot_style():
     return random.choice(PAINTER_STYLES)
+
 
 # ============================================================
 # WOW CSS: Glassmorphism + Coral + Painter accent
@@ -448,6 +456,7 @@ def inject_css(theme: str, painter_accent: str, coral: str = CORAL):
     </style>
     """
 
+
 # ============================================================
 # Coral highlighting (regulatory ontology)
 # ============================================================
@@ -463,6 +472,7 @@ DEFAULT_ONTOLOGY = [
     "udi", "510(k)", "k-number", "k number",
     "intended use", "class iii", "class ii", "class i",
 ]
+
 
 def coral_highlight(text: str, keywords: Optional[List[str]] = None) -> str:
     if not text:
@@ -480,8 +490,10 @@ def coral_highlight(text: str, keywords: Optional[List[str]] = None) -> str:
         out = pattern.sub(repl, out)
     return out
 
+
 def safe_md_render(md: str) -> None:
     st.markdown(f"<div class='wow-card editor-frame'>{coral_highlight(md)}</div>", unsafe_allow_html=True)
+
 
 # ============================================================
 # Defaultsets JSON: ensure + load
@@ -489,115 +501,118 @@ def safe_md_render(md: str) -> None:
 def ensure_defaultsets_json():
     if os.path.exists(DEFAULTSETS_PATH):
         return
-    # Minimal fallback if user forgot to add defaultsets.json
     fallback = {"version": "1.0", "datasets": {"510k": [], "adr": [], "gudid": [], "recall": []}}
     with open(DEFAULTSETS_PATH, "w", encoding="utf-8") as f:
         json.dump(fallback, f, ensure_ascii=False, indent=2)
+
 
 def load_defaultsets_json() -> Dict[str, Any]:
     ensure_defaultsets_json()
     with open(DEFAULTSETS_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
+
 # ============================================================
 # Dataset parsing + standardization
 # ============================================================
 CANON = {
     "510k": [
-        "k_number","decision_date","decision","device_name","applicant","manufacturer_name","product_code",
-        "regulation_number","device_class","panel","review_advisory_committee","predicate_k_numbers","summary",
+        "k_number", "decision_date", "decision", "device_name", "applicant", "manufacturer_name", "product_code",
+        "regulation_number", "device_class", "panel", "review_advisory_committee", "predicate_k_numbers", "summary",
     ],
     "adr": [
-        "adverse_event_id","report_date","event_type","patient_outcome","device_problem","manufacturer_name",
-        "brand_name","product_code","device_class","udi_di","recall_number_link","narrative",
+        "adverse_event_id", "report_date", "event_type", "patient_outcome", "device_problem", "manufacturer_name",
+        "brand_name", "product_code", "device_class", "udi_di", "recall_number_link", "narrative",
     ],
     "gudid": [
-        "primary_di","udi_di","device_description","device_class","manufacturer_name","brand_name","product_code",
-        "gmdn_term","mri_safety","sterile","single_use","implantable","contains_nrl","version_or_model_number",
-        "catalog_number","record_status","publish_date","company_contact_email","company_contact_phone",
-        "company_state","company_country",
+        "primary_di", "udi_di", "device_description", "device_class", "manufacturer_name", "brand_name", "product_code",
+        "gmdn_term", "mri_safety", "sterile", "single_use", "implantable", "contains_nrl", "version_or_model_number",
+        "catalog_number", "record_status", "publish_date", "company_contact_email", "company_contact_phone",
+        "company_state", "company_country",
     ],
     "recall": [
-        "recall_number","recall_class","event_date","termination_date","status","firm_name","manufacturer_name",
-        "product_description","product_code","code_info","reason_for_recall","distribution_pattern",
-        "quantity_in_commerce","country","state",
+        "recall_number", "recall_class", "event_date", "termination_date", "status", "firm_name", "manufacturer_name",
+        "product_description", "product_code", "code_info", "reason_for_recall", "distribution_pattern",
+        "quantity_in_commerce", "country", "state",
     ],
 }
 
 SYNONYMS = {
     "510k": {
-        "k_number": ["k_number","knumber","k","k_no","k#","submission_number"],
-        "decision_date": ["decision_date","clearance_date","date"],
-        "decision": ["decision","decision_code","determination","se_decision"],
-        "device_name": ["device_name","device","name","device_title","device title"],
-        "applicant": ["applicant","submitter","company","applicant_name"],
-        "manufacturer_name": ["manufacturer_name","manufacturer","mfr","firm_name"],
-        "product_code": ["product_code","productcode","procode","code"],
-        "regulation_number": ["regulation_number","regulation","21cfr","cfr"],
-        "device_class": ["device_class","class"],
-        "panel": ["panel","medical_specialty","review_panel"],
-        "review_advisory_committee": ["review_advisory_committee","committee"],
-        "predicate_k_numbers": ["predicate_k_numbers","predicates","predicate","predicate_k","predicate_knumbers"],
-        "summary": ["summary","description","clearance_summary","decision_summary"],
+        "k_number": ["k_number", "knumber", "k", "k_no", "k#", "submission_number"],
+        "decision_date": ["decision_date", "clearance_date", "date"],
+        "decision": ["decision", "decision_code", "determination", "se_decision"],
+        "device_name": ["device_name", "device", "name", "device_title", "device title"],
+        "applicant": ["applicant", "submitter", "company", "applicant_name"],
+        "manufacturer_name": ["manufacturer_name", "manufacturer", "mfr", "firm_name"],
+        "product_code": ["product_code", "productcode", "procode", "code"],
+        "regulation_number": ["regulation_number", "regulation", "21cfr", "cfr"],
+        "device_class": ["device_class", "class"],
+        "panel": ["panel", "medical_specialty", "review_panel"],
+        "review_advisory_committee": ["review_advisory_committee", "committee"],
+        "predicate_k_numbers": ["predicate_k_numbers", "predicates", "predicate", "predicate_k", "predicate_knumbers"],
+        "summary": ["summary", "description", "clearance_summary", "decision_summary"],
     },
     "adr": {
-        "adverse_event_id": ["adverse_event_id","mdr_id","event_id","report_id","mdr_report_key"],
-        "report_date": ["report_date","date"],
-        "event_type": ["event_type","type"],
-        "patient_outcome": ["patient_outcome","outcome"],
-        "device_problem": ["device_problem","problem","issue","device_problem_code"],
-        "manufacturer_name": ["manufacturer_name","manufacturer","mfr","firm_name"],
-        "brand_name": ["brand_name","brand","device_brand"],
-        "product_code": ["product_code","code"],
-        "device_class": ["device_class","class"],
-        "udi_di": ["udi_di","udi","primary_di","di"],
-        "recall_number_link": ["recall_number_link","recall_number","linked_recall"],
-        "narrative": ["narrative","description","event_description","text"],
+        "adverse_event_id": ["adverse_event_id", "mdr_id", "event_id", "report_id", "mdr_report_key"],
+        "report_date": ["report_date", "date"],
+        "event_type": ["event_type", "type"],
+        "patient_outcome": ["patient_outcome", "outcome"],
+        "device_problem": ["device_problem", "problem", "issue", "device_problem_code"],
+        "manufacturer_name": ["manufacturer_name", "manufacturer", "mfr", "firm_name"],
+        "brand_name": ["brand_name", "brand", "device_brand"],
+        "product_code": ["product_code", "code"],
+        "device_class": ["device_class", "class"],
+        "udi_di": ["udi_di", "udi", "primary_di", "di"],
+        "recall_number_link": ["recall_number_link", "recall_number", "linked_recall"],
+        "narrative": ["narrative", "description", "event_description", "text"],
     },
     "gudid": {
-        "primary_di": ["primary_di","primarydi","udi_di","udi","di"],
-        "udi_di": ["udi_di","primary_di","udi","di"],
-        "device_description": ["device_description","description","device_desc"],
-        "device_class": ["device_class","class"],
-        "manufacturer_name": ["manufacturer_name","manufacturer","mfr","company"],
-        "brand_name": ["brand_name","brand","device_brand"],
-        "product_code": ["product_code","code"],
-        "gmdn_term": ["gmdn_term","gmdn","gmdn_name"],
-        "mri_safety": ["mri_safety","mri","mri_status","mri_safety_status"],
-        "sterile": ["sterile","is_sterile"],
-        "single_use": ["single_use","singleuse","is_single_use"],
-        "implantable": ["implantable","is_implantable"],
-        "contains_nrl": ["contains_nrl","nrl","latex","contains_latex"],
-        "version_or_model_number": ["version_or_model_number","model","model_number","version"],
-        "catalog_number": ["catalog_number","catalog","cat_no"],
-        "record_status": ["record_status","status"],
-        "publish_date": ["publish_date","date"],
-        "company_contact_email": ["company_contact_email","email"],
-        "company_contact_phone": ["company_contact_phone","phone","telephone"],
-        "company_state": ["company_state","state"],
-        "company_country": ["company_country","country"],
+        "primary_di": ["primary_di", "primarydi", "udi_di", "udi", "di"],
+        "udi_di": ["udi_di", "primary_di", "udi", "di"],
+        "device_description": ["device_description", "description", "device_desc"],
+        "device_class": ["device_class", "class"],
+        "manufacturer_name": ["manufacturer_name", "manufacturer", "mfr", "company"],
+        "brand_name": ["brand_name", "brand", "device_brand"],
+        "product_code": ["product_code", "code"],
+        "gmdn_term": ["gmdn_term", "gmdn", "gmdn_name"],
+        "mri_safety": ["mri_safety", "mri", "mri_status", "mri_safety_status"],
+        "sterile": ["sterile", "is_sterile"],
+        "single_use": ["single_use", "singleuse", "is_single_use"],
+        "implantable": ["implantable", "is_implantable"],
+        "contains_nrl": ["contains_nrl", "nrl", "latex", "contains_latex"],
+        "version_or_model_number": ["version_or_model_number", "model", "model_number", "version"],
+        "catalog_number": ["catalog_number", "catalog", "cat_no"],
+        "record_status": ["record_status", "status"],
+        "publish_date": ["publish_date", "date"],
+        "company_contact_email": ["company_contact_email", "email"],
+        "company_contact_phone": ["company_contact_phone", "phone", "telephone"],
+        "company_state": ["company_state", "state"],
+        "company_country": ["company_country", "country"],
     },
     "recall": {
-        "recall_number": ["recall_number","recall","recall_id","z_number","z#"],
-        "recall_class": ["recall_class","class"],
-        "event_date": ["event_date","date","initiation_date"],
-        "termination_date": ["termination_date","term_date"],
-        "status": ["status","recall_status"],
-        "firm_name": ["firm_name","firm","company","applicant"],
-        "manufacturer_name": ["manufacturer_name","manufacturer","mfr","firm_name"],
-        "product_description": ["product_description","description","product"],
-        "product_code": ["product_code","code"],
-        "code_info": ["code_info","lots","serials","batch"],
-        "reason_for_recall": ["reason_for_recall","reason","root_cause","root_cause_description","cause"],
-        "distribution_pattern": ["distribution_pattern","distribution"],
-        "quantity_in_commerce": ["quantity_in_commerce","quantity","qty"],
+        "recall_number": ["recall_number", "recall", "recall_id", "z_number", "z#"],
+        "recall_class": ["recall_class", "class"],
+        "event_date": ["event_date", "date", "initiation_date"],
+        "termination_date": ["termination_date", "term_date"],
+        "status": ["status", "recall_status"],
+        "firm_name": ["firm_name", "firm", "company", "applicant"],
+        "manufacturer_name": ["manufacturer_name", "manufacturer", "mfr", "firm_name"],
+        "product_description": ["product_description", "description", "product"],
+        "product_code": ["product_code", "code"],
+        "code_info": ["code_info", "lots", "serials", "batch"],
+        "reason_for_recall": ["reason_for_recall", "reason", "root_cause", "root_cause_description", "cause"],
+        "distribution_pattern": ["distribution_pattern", "distribution"],
+        "quantity_in_commerce": ["quantity_in_commerce", "quantity", "qty"],
         "country": ["country"],
         "state": ["state"],
     },
 }
 
+
 def _norm_col(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
+
 
 def detect_format(text: str) -> str:
     t0 = (text or "").lstrip()
@@ -608,6 +623,7 @@ def detect_format(text: str) -> str:
     if "," in t0 and "\n" in t0:
         return "csv"
     return "text"
+
 
 def parse_dataset_blob(blob: Union[str, bytes], filename: Optional[str] = None) -> pd.DataFrame:
     if isinstance(blob, bytes):
@@ -643,7 +659,6 @@ def parse_dataset_blob(blob: Union[str, bytes], filename: Optional[str] = None) 
     if fmt == "csv":
         return pd.read_csv(io.StringIO(text))
 
-    # final fallback attempts
     try:
         obj = json.loads(text)
         if isinstance(obj, dict):
@@ -652,13 +667,13 @@ def parse_dataset_blob(blob: Union[str, bytes], filename: Optional[str] = None) 
     except Exception:
         return pd.read_csv(io.StringIO(text))
 
+
 def _best_match_column(df_cols: List[str], candidates: List[str]) -> Optional[str]:
     norm_map = {_norm_col(c): c for c in df_cols}
     for cand in candidates:
         n = _norm_col(cand)
         if n in norm_map:
             return norm_map[n]
-    # fuzzy column-name match
     best, best_score = None, 0
     for c in df_cols:
         for cand in candidates:
@@ -666,6 +681,7 @@ def _best_match_column(df_cols: List[str], candidates: List[str]) -> Optional[st
             if sc > best_score:
                 best_score, best = sc, c
     return best if best_score >= 85 else None
+
 
 def standardize_df(dataset_type: str, df: pd.DataFrame) -> Tuple[pd.DataFrame, str]:
     dataset_type = dataset_type.lower().strip()
@@ -725,7 +741,6 @@ def standardize_df(dataset_type: str, df: pd.DataFrame) -> Tuple[pd.DataFrame, s
                 return None
         out["quantity_in_commerce"] = out["quantity_in_commerce"].apply(to_int)
 
-    # drop completely empty rows
     def row_has_any_signal(r):
         for c in canon:
             v = r.get(c)
@@ -744,8 +759,10 @@ def standardize_df(dataset_type: str, df: pd.DataFrame) -> Tuple[pd.DataFrame, s
     report_lines += ["", f"**Rows:** {len(out)}", f"**Original columns:** {len(original_cols)}"]
     return out, "\n".join(report_lines)
 
+
 def df_to_json_records(df: pd.DataFrame) -> str:
     return json.dumps(df.to_dict(orient="records"), ensure_ascii=False, indent=2)
+
 
 # ============================================================
 # Search engine
@@ -755,6 +772,7 @@ class SearchResult:
     dataset: str
     score: int
     record: Dict[str, Any]
+
 
 class RegulatorySearchEngine:
     def __init__(self, dfs: Dict[str, pd.DataFrame]):
@@ -783,10 +801,10 @@ class RegulatorySearchEngine:
             return results
 
         specs = {
-            "510k": ["k_number","device_name","applicant","manufacturer_name","product_code","summary","panel","decision"],
-            "recall": ["recall_number","firm_name","manufacturer_name","product_code","reason_for_recall","product_description","recall_class","status"],
-            "adr": ["adverse_event_id","brand_name","manufacturer_name","product_code","udi_di","device_problem","patient_outcome","narrative"],
-            "gudid": ["udi_di","primary_di","brand_name","manufacturer_name","product_code","device_description","gmdn_term","mri_safety"],
+            "510k": ["k_number", "device_name", "applicant", "manufacturer_name", "product_code", "summary", "panel", "decision"],
+            "recall": ["recall_number", "firm_name", "manufacturer_name", "product_code", "reason_for_recall", "product_description", "recall_class", "status"],
+            "adr": ["adverse_event_id", "brand_name", "manufacturer_name", "product_code", "udi_di", "device_problem", "patient_outcome", "narrative"],
+            "gudid": ["udi_di", "primary_di", "brand_name", "manufacturer_name", "product_code", "device_description", "gmdn_term", "mri_safety"],
         }
 
         for ds, df in self.dfs.items():
@@ -805,7 +823,6 @@ class RegulatorySearchEngine:
             results[ds].sort(key=lambda x: x.score, reverse=True)
             results[ds] = results[ds][:200]
 
-        # simple keyword expansion: if user searches a K#, pull predicate K#s too
         q_upper = q.upper()
         if include.get("510k", True) and results["510k"]:
             top = results["510k"][0].record
@@ -820,6 +837,7 @@ class RegulatorySearchEngine:
 
         return results
 
+
 # ============================================================
 # LLM routing (OpenAI / Gemini / Anthropic / xAI)
 # ============================================================
@@ -831,6 +849,7 @@ def provider_model_map():
         "xai": XAI_MODELS,
     }
 
+
 def _get_env_any(env_keys: List[str]) -> Optional[str]:
     for k in env_keys:
         v = os.environ.get(k)
@@ -838,11 +857,8 @@ def _get_env_any(env_keys: List[str]) -> Optional[str]:
             return v
     return None
 
+
 def get_api_key(env_primary: str) -> Tuple[Optional[str], str]:
-    """
-    Returns (key, source) where source in {"env","session","missing"}.
-    env_primary is one of OPENAI_API_KEY, GEMINI_API_KEY, ANTHROPIC_API_KEY, XAI_API_KEY
-    """
     env_val = _get_env_any(KEY_ENV_CANDIDATES.get(env_primary, [env_primary]))
     if env_val:
         return env_val, "env"
@@ -850,6 +866,7 @@ def get_api_key(env_primary: str) -> Tuple[Optional[str], str]:
     if sess:
         return sess, "session"
     return None, "missing"
+
 
 def call_llm_text(provider: str, model: str, api_key: str, system: str, user: str,
                   max_tokens: int = 12000, temperature: float = 0.2) -> str:
@@ -893,7 +910,6 @@ def call_llm_text(provider: str, model: str, api_key: str, system: str, user: st
         return "".join(parts).strip()
 
     if provider == "xai":
-        # xAI is OpenAI-compatible
         from openai import OpenAI
         client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
         resp = client.responses.create(
@@ -905,6 +921,7 @@ def call_llm_text(provider: str, model: str, api_key: str, system: str, user: st
         return resp.output_text or ""
 
     raise ValueError(f"Unsupported provider: {provider}")
+
 
 def call_vision_ocr(provider: str, model: str, api_key: str, images: List[Image.Image], lang: str,
                     max_tokens: int = 12000) -> str:
@@ -951,6 +968,7 @@ def call_vision_ocr(provider: str, model: str, api_key: str, images: List[Image.
 
     raise ValueError("Vision OCR only supported for provider=openai or gemini.")
 
+
 # ============================================================
 # PDF tools
 # ============================================================
@@ -963,7 +981,8 @@ def parse_page_ranges(ranges_str: str) -> List[Tuple[int, int]]:
     for p in parts:
         if "-" in p:
             a, b = p.split("-", 1)
-            a = int(a.strip()); b = int(b.strip())
+            a = int(a.strip())
+            b = int(b.strip())
             if a > b:
                 a, b = b, a
             out.append((a, b))
@@ -972,21 +991,25 @@ def parse_page_ranges(ranges_str: str) -> List[Tuple[int, int]]:
             out.append((n, n))
     return out
 
+
 def trim_pdf_bytes(pdf_bytes: bytes, page_ranges: List[Tuple[int, int]]) -> bytes:
     reader = PdfReader(io.BytesIO(pdf_bytes))
     writer = PdfWriter()
     n = len(reader.pages)
     for (s, e) in page_ranges:
-        s = max(1, s); e = min(n, e)
+        s = max(1, s)
+        e = min(n, e)
         for i in range(s - 1, e):
             writer.add_page(reader.pages[i])
     out = io.BytesIO()
     writer.write(out)
     return out.getvalue()
 
+
 def extract_text_pypdf2(pdf_bytes: bytes) -> str:
     reader = PdfReader(io.BytesIO(pdf_bytes))
     return "\n\n".join([(p.extract_text() or "") for p in reader.pages]).strip()
+
 
 def render_pdf_iframe(pdf_bytes: bytes, height: int = 520) -> str:
     b64 = base64.b64encode(pdf_bytes).decode("utf-8")
@@ -1000,24 +1023,22 @@ def render_pdf_iframe(pdf_bytes: bytes, height: int = 520) -> str:
     </iframe>
     """
 
+
 def markdown_reconstruct(text: str) -> str:
-    """
-    Lightweight cleanup: normalize whitespace, fix broken bullets, headings.
-    Conservative (no fabrication).
-    """
     if not text:
         return ""
     x = text.replace("\r\n", "\n")
     x = re.sub(r"[ \t]+\n", "\n", x)
     x = re.sub(r"\n{3,}", "\n\n", x)
-    # fix bullet spacing
     x = re.sub(r"\n(\*|-|•)\s*", r"\n- ", x)
-    # detect all-caps headings lines and convert to markdown heading
+
     def as_heading(m):
         line = m.group(1).strip()
         return f"\n\n## {line.title()}\n"
+
     x = re.sub(r"\n([A-Z][A-Z0-9 \-/]{8,})\n", as_heading, x)
     return x.strip()
+
 
 # ============================================================
 # Agents YAML handling (heuristic standardization + optional LLM)
@@ -1042,18 +1063,8 @@ agents:
       - Performance testing
       - Labeling and contraindications
       - Risks & gaps
-  - id: recall_signalizer
-    name: Recall Signalizer
-    description: Identify recall/complaint signals and possible CAPA themes.
-    provider: gemini
-    model: gemini-2.5-flash
-    temperature: 0.2
-    max_tokens: 6000
-    system_prompt: |
-      You are a regulatory risk analyst. Do not fabricate. Use evidence quotes.
-    user_prompt: |
-      Extract recall and complaint signals, suspected root causes, and CAPA suggestions.
 """
+
 
 def read_text_file(path: str, default: str) -> str:
     try:
@@ -1064,19 +1075,16 @@ def read_text_file(path: str, default: str) -> str:
         pass
     return default
 
+
 def safe_write_text(path: str, content: str):
     try:
         with open(path, "w", encoding="utf-8") as f:
             f.write(content)
     except Exception:
-        # HF FS is usually writable; if not, just ignore
         pass
 
+
 def standardize_agents_obj(obj: Any) -> Dict[str, Any]:
-    """
-    Heuristic mapping for non-standard YAML to standard schema.
-    Does NOT call LLM; safe fallback.
-    """
     if obj is None:
         return {"version": "1.0", "agents": []}
 
@@ -1111,7 +1119,7 @@ def standardize_agents_obj(obj: Any) -> Dict[str, Any]:
             "description": str(desc),
             "provider": str(provider),
             "model": str(model),
-            "temperature": float(temp) if str(temp).replace(".","",1).isdigit() else 0.2,
+            "temperature": float(temp) if str(temp).replace(".", "", 1).isdigit() else 0.2,
             "max_tokens": int(mx) if str(mx).isdigit() else 6000,
             "system_prompt": str(system_prompt),
             "user_prompt": str(user_prompt),
@@ -1119,15 +1127,12 @@ def standardize_agents_obj(obj: Any) -> Dict[str, Any]:
 
     return {"version": version, "agents": fixed}
 
+
 def load_agents_yaml(raw_text: str) -> Tuple[Dict[str, Any], Optional[str]]:
-    """
-    Returns (config_dict, error_str).
-    """
     try:
         obj = yaml.safe_load(raw_text) if raw_text.strip() else {"version": "1.0", "agents": []}
         cfg = standardize_agents_obj(obj)
 
-        # validate required keys
         for a in cfg.get("agents", []):
             if not a.get("id") or not a.get("system_prompt"):
                 return cfg, "Agent missing required keys: id and/or system_prompt."
@@ -1135,8 +1140,10 @@ def load_agents_yaml(raw_text: str) -> Tuple[Dict[str, Any], Optional[str]]:
     except Exception as e:
         return {"version": "1.0", "agents": []}, str(e)
 
+
 def dump_agents_yaml(cfg: Dict[str, Any]) -> str:
     return yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True)
+
 
 def unified_diff(a: str, b: str) -> str:
     import difflib
@@ -1146,6 +1153,7 @@ def unified_diff(a: str, b: str) -> str:
         fromfile="before.yaml",
         tofile="after.yaml",
     ))
+
 
 def llm_standardize_agents_yaml(raw_yaml: str, provider: str, model: str, api_key: str, lang: str) -> str:
     schema = {
@@ -1180,6 +1188,7 @@ INPUT YAML:
     out = call_llm_text(provider, model, api_key, sys, user, max_tokens=4000, temperature=0.0)
     return out.strip()
 
+
 # ============================================================
 # AI Note Keeper Magics (6)
 # ============================================================
@@ -1191,6 +1200,7 @@ NOTE_MAGICS = [
     "Compliance Checklist Generator",
     "AI Keywords Highlighter",
 ]
+
 
 def magic_run(magic_name: str, provider: str, model: str, api_key: str, raw_note: str, lang: str, max_tokens: int = 6000) -> str:
     if lang == "zh-TW":
@@ -1225,18 +1235,19 @@ def magic_run(magic_name: str, provider: str, model: str, api_key: str, raw_note
 
     raise ValueError("AI Keywords Highlighter handled in UI.")
 
+
 def apply_keyword_colors(text: str, pairs: List[Tuple[str, str]]) -> str:
     out = coral_highlight(text)
     for kw, color in pairs:
         if not kw.strip():
             continue
-        # replace both raw and highlighted occurrences (simple approach)
         out = re.sub(
             rf"(?i)({re.escape(kw)})",
             rf"<span style='color:{color}; font-weight:900; text-shadow:0 0 18px rgba(255,255,255,0.08)'>\1</span>",
             out,
         )
     return out
+
 
 # ============================================================
 # Smart suggestions (intent)
@@ -1255,7 +1266,6 @@ def smart_suggestions(lang: str, q: str) -> List[str]:
             "分析 'Latex Allergy' 信號",
             "查詢 'K240123'",
         ]
-    # generate intent suggestions
     base = q
     if lang == "en":
         return [
@@ -1273,6 +1283,7 @@ def smart_suggestions(lang: str, q: str) -> List[str]:
         f"在 GUDID 查詢 '{base}'（UDI/DI）",
     ]
 
+
 # ============================================================
 # Batch Factory: scan/trim/summarize/toc
 # ============================================================
@@ -1282,10 +1293,12 @@ def scan_pdfs(root_dir: str) -> List[str]:
         return []
     return [str(x) for x in p.rglob("*.pdf") if x.is_file()]
 
+
 def trim_first_page_to_bytes(pdf_path: str) -> bytes:
     with open(pdf_path, "rb") as f:
         pdf_bytes = f.read()
     return trim_pdf_bytes(pdf_bytes, [(1, 1)])
+
 
 def summarize_cover(provider: str, model: str, api_key: str, text: str, lang: str) -> str:
     sys = "You summarize FDA regulatory cover pages. Output Markdown." if lang != "zh-TW" else "你負責摘要 FDA 法規文件封面頁。輸出 Markdown。"
@@ -1298,6 +1311,7 @@ def summarize_cover(provider: str, model: str, api_key: str, text: str, lang: st
     )
     return call_llm_text(provider, model, api_key, sys, user, max_tokens=800, temperature=0.2)
 
+
 def build_master_toc(items: List[Dict[str, str]]) -> str:
     lines = ["# Project Master Index", ""]
     for i, it in enumerate(items, start=1):
@@ -1309,10 +1323,12 @@ def build_master_toc(items: List[Dict[str, str]]) -> str:
         ]
     return "\n".join(lines).strip()
 
+
 # ============================================================
 # Streamlit setup + Session init
 # ============================================================
 st.set_page_config(page_title="FDA Review Studio", layout="wide")
+
 
 def ss_init():
     st.session_state.setdefault("theme", "dark")
@@ -1336,11 +1352,16 @@ def ss_init():
     st.session_state.setdefault("ocr_text", "")
     st.session_state.setdefault("doc_text_override", "")
 
+    # OCR stable selections (FIX: keep widget state stable, not inside button handler)
+    st.session_state.setdefault("doc_ocr_engine_choice", "extract")
+    st.session_state.setdefault("doc_vision_provider", "openai")
+    st.session_state.setdefault("doc_vision_model", OPENAI_MODELS[0])
+
     st.session_state.setdefault("agents_yaml_text", "")
     st.session_state.setdefault("agents_cfg", {"version": "1.0", "agents": []})
     st.session_state.setdefault("skill_md", "")
 
-    st.session_state.setdefault("agent_runs", [])  # list of dicts
+    st.session_state.setdefault("agent_runs", [])
     st.session_state.setdefault("final_report", "")
 
     st.session_state.setdefault("note_raw", "")
@@ -1357,9 +1378,10 @@ def ss_init():
     st.session_state.setdefault("factory_toc_md", "")
     st.session_state.setdefault("factory_items", [])
 
+
 ss_init()
 
-# Load defaults at start from defaultsets.json
+
 def load_defaults_into_session():
     data = load_defaultsets_json()
     ds = data.get("datasets", {})
@@ -1367,10 +1389,10 @@ def load_defaults_into_session():
         st.session_state["dfs"][k] = pd.DataFrame(ds.get(k, []))
     st.session_state["dataset_loaded_from"] = DEFAULTSETS_PATH
 
+
 if st.session_state["dfs"]["510k"].empty and st.session_state["dfs"]["recall"].empty and st.session_state["dfs"]["adr"].empty and st.session_state["dfs"]["gudid"].empty:
     load_defaults_into_session()
 
-# Load agents + skill files
 if not st.session_state["agents_yaml_text"].strip():
     st.session_state["agents_yaml_text"] = read_text_file(AGENTS_PATH, DEFAULT_AGENTS_YAML)
 
@@ -1380,17 +1402,15 @@ if not st.session_state["skill_md"].strip():
 agents_cfg, agents_err = load_agents_yaml(st.session_state["agents_yaml_text"])
 st.session_state["agents_cfg"] = agents_cfg
 
-# ============================================================
-# Apply CSS
-# ============================================================
 lang = st.session_state["lang"]
 theme = st.session_state["theme"]
 style = st.session_state["style"]
+
 st.markdown(inject_css(theme, style["accent"]), unsafe_allow_html=True)
 st.markdown("<div class='fab'>WOW</div><div class='fab-sub'>Regulatory Command Center</div>", unsafe_allow_html=True)
 
 # ============================================================
-# Top Bar: Title + Status + Settings popover
+# Top Bar: Title + Status + Settings popover (improved)
 # ============================================================
 def status_chip(label: str, env_primary: str) -> str:
     key, src = get_api_key(env_primary)
@@ -1402,15 +1422,35 @@ def status_chip(label: str, env_primary: str) -> str:
         dot = "var(--bad)"; stt = t(lang, "missing_key")
     return f"<span class='chip'><span class='dot' style='background:{dot}'></span>{label}: {stt}</span>"
 
+
 def dataset_chip() -> str:
     dfs = st.session_state["dfs"]
     return f"<span class='chip'><span class='dot'></span>510k:{len(dfs['510k'])} Recall:{len(dfs['recall'])} ADR:{len(dfs['adr'])} GUDID:{len(dfs['gudid'])}</span>"
+
 
 def ocr_chip() -> str:
     ok = bool((st.session_state["ocr_text"] or "").strip())
     dot = "var(--ok)" if ok else "var(--warn)"
     txt = "READY" if ok else "EMPTY"
     return f"<span class='chip'><span class='dot' style='background:{dot}'></span>OCR: {txt}</span>"
+
+
+def choose_style_with_ai(provider: str, model: str, api_key: str, context: str, lang: str) -> Optional[Dict[str, Any]]:
+    style_list = "\n".join([f"- {s['name']} (id={s['id']})" for s in PAINTER_STYLES])
+    sys = "You pick an art style for a UI theme. Output exactly one style id from the list. No extra words."
+    if lang == "zh-TW":
+        sys = "你負責替 UI 選擇畫家風格。請只輸出一個 style id，不要多餘文字。"
+    user = f"""Choose ONE painter style id based on the vibe (regulatory/clinical/engineering) and the content.
+
+STYLES:
+{style_list}
+
+CONTENT:
+{context[:7000]}
+"""
+    sid = call_llm_text(provider, model, api_key, sys, user, max_tokens=40, temperature=0.2).strip().lower()
+    return next((s for s in PAINTER_STYLES if s["id"] == sid), None)
+
 
 top = st.container()
 with top:
@@ -1432,20 +1472,53 @@ with top:
 
     with c3:
         with st.popover(t(lang, "settings")):
-            st.session_state["theme"] = st.radio(t(lang, "theme"), ["dark", "light"], index=0 if theme == "dark" else 1)
-            st.session_state["lang"] = st.radio(t(lang, "language"), ["en", "zh-TW"], index=0 if lang == "en" else 1)
+            st.session_state["theme"] = st.radio(t(lang, "theme"), ["dark", "light"], index=0 if theme == "dark" else 1, key="set_theme")
+            st.session_state["lang"] = st.radio(t(lang, "language"), ["en", "zh-TW"], index=0 if lang == "en" else 1, key="set_lang")
 
             style_names = [s["name"] for s in PAINTER_STYLES]
             curr = st.session_state["style"]["name"]
             ix = style_names.index(curr) if curr in style_names else 0
-            pick = st.selectbox(t(lang, "style"), style_names, index=ix)
+            pick = st.selectbox(t(lang, "style"), style_names, index=ix, key="set_style")
             st.session_state["style"] = next(s for s in PAINTER_STYLES if s["name"] == pick)
 
-            if st.button(t(lang, "jackpot"), use_container_width=True):
-                st.session_state["style"] = jackpot_style()
-                st.rerun()
+            colA, colB = st.columns([1, 1])
+            with colA:
+                if st.button(t(lang, "jackpot"), use_container_width=True, key="set_style_jackpot"):
+                    st.session_state["style"] = jackpot_style()
+                    st.rerun()
 
-# refresh locals after settings
+            with colB:
+                with st.expander(t(lang, "style_ai_pick"), expanded=False):
+                    st.caption(t(lang, "style_ai_help"))
+                    pmap = provider_model_map()
+                    prov = st.selectbox(t(lang, "provider"), list(pmap.keys()), index=0, key="set_style_ai_prov")
+                    model = st.selectbox(t(lang, "model"), pmap[prov], index=0, key="set_style_ai_model")
+
+                    # context from query + note + doc
+                    ctx = "\n\n".join([
+                        f"QUERY:\n{st.session_state.get('global_query','')}",
+                        f"NOTE:\n{st.session_state.get('note_raw','')}",
+                        f"DOC:\n{st.session_state.get('ocr_text','')}",
+                    ]).strip()
+
+                    if st.button(f"{t(lang,'run')} AI", use_container_width=True, key="set_style_ai_run"):
+                        env_primary = {"openai": "OPENAI_API_KEY", "gemini": "GEMINI_API_KEY", "anthropic": "ANTHROPIC_API_KEY", "xai": "XAI_API_KEY"}[prov]
+                        api_key, src = get_api_key(env_primary)
+                        if not api_key:
+                            st.error(f"{env_primary} missing.")
+                        else:
+                            try:
+                                chosen = choose_style_with_ai(prov, model, api_key, ctx, lang=st.session_state["lang"])
+                                if chosen:
+                                    st.session_state["style"] = chosen
+                                    st.success(f"{t(st.session_state['lang'],'style_recommended')}: {chosen['name']}")
+                                    st.rerun()
+                                else:
+                                    st.warning("AI returned an unknown style id.")
+                            except Exception as e:
+                                st.error(f"AI style pick failed: {e}")
+
+# refresh locals after settings changes
 lang = st.session_state["lang"]
 theme = st.session_state["theme"]
 style = st.session_state["style"]
@@ -1462,7 +1535,6 @@ with st.sidebar:
         if src == "env":
             st.markdown(f"<div class='wow-mini'><b>{label}</b><br/>{t(lang,'managed_by_env')}</div>", unsafe_allow_html=True)
             return
-        # show input only if not env
         val = st.text_input(f"{label} key", value=st.session_state["api_keys"].get(env_primary, ""), type="password", key=f"key_{env_primary}")
         if val:
             st.session_state["api_keys"][env_primary] = val
@@ -1474,7 +1546,7 @@ with st.sidebar:
 
     st.divider()
     st.markdown(f"<div class='wow-card'><h4 style='margin:0'>{t(lang,'danger_zone')}</h4></div>", unsafe_allow_html=True)
-    if st.button(t(lang, "clear_session"), use_container_width=True):
+    if st.button(t(lang, "clear_session"), use_container_width=True, key="clear_session_btn"):
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
@@ -1508,14 +1580,14 @@ with nav[1]:
 
 with nav[2]:
     with st.expander("Search Settings", expanded=False):
-        st.session_state["search_exact"] = st.checkbox(t(lang, "exact_match"), value=st.session_state["search_exact"])
-        st.session_state["search_fuzzy"] = st.slider(t(lang, "fuzzy_level"), 60, 95, int(st.session_state["search_fuzzy"]), 1)
+        st.session_state["search_exact"] = st.checkbox(t(lang, "exact_match"), value=st.session_state["search_exact"], key="search_exact_cb")
+        st.session_state["search_fuzzy"] = st.slider(t(lang, "fuzzy_level"), 60, 95, int(st.session_state["search_fuzzy"]), 1, key="search_fuzzy_slider")
         st.caption(t(lang, "dataset_toggles"))
         inc = st.session_state["search_include"]
-        inc["510k"] = st.checkbox("510k", value=inc.get("510k", True))
-        inc["recall"] = st.checkbox("recall", value=inc.get("recall", True))
-        inc["adr"] = st.checkbox("adr", value=inc.get("adr", True))
-        inc["gudid"] = st.checkbox("gudid", value=inc.get("gudid", True))
+        inc["510k"] = st.checkbox("510k", value=inc.get("510k", True), key="inc_510k")
+        inc["recall"] = st.checkbox("recall", value=inc.get("recall", True), key="inc_recall")
+        inc["adr"] = st.checkbox("adr", value=inc.get("adr", True), key="inc_adr")
+        inc["gudid"] = st.checkbox("gudid", value=inc.get("gudid", True), key="inc_gudid")
         st.session_state["search_include"] = inc
 
 engine = RegulatorySearchEngine(st.session_state["dfs"])
@@ -1531,12 +1603,11 @@ def run_search_now() -> Dict[str, List[SearchResult]]:
 search_results = run_search_now() if st.session_state["global_query"].strip() else {"510k": [], "recall": [], "adr": [], "gudid": []}
 
 # ============================================================
-# Dashboard Page
+# Dashboard Page (FIXED: unique Plotly keys)
 # ============================================================
 def dashboard_page():
     st.markdown(f"<div class='wow-card'><h3 style='margin:0'>{t(lang,'dashboard')}</h3></div>", unsafe_allow_html=True)
 
-    # KPI cards
     dfs = st.session_state["dfs"]
     k1, k2, k3, k4 = st.columns(4)
     for col, name in zip([k1, k2, k3, k4], ["510k", "recall", "adr", "gudid"]):
@@ -1546,22 +1617,16 @@ def dashboard_page():
                 unsafe_allow_html=True,
             )
 
-    # Smart suggestions
     with st.expander(t(lang, "smart_suggestions"), expanded=True):
         sugg = smart_suggestions(lang, st.session_state["global_query"])
         s_cols = st.columns(2)
         for i, s in enumerate(sugg[:6]):
             with s_cols[i % 2]:
                 if st.button(s, use_container_width=True, key=f"sugg_{i}"):
-                    # put the quoted term (best effort) into the query
                     m = re.search(r"'([^']+)'", s)
-                    if m:
-                        st.session_state["global_query"] = m.group(1)
-                    else:
-                        st.session_state["global_query"] = s
+                    st.session_state["global_query"] = m.group(1) if m else s
                     st.rerun()
 
-    # Charts from search results (if any), else show dataset overviews
     st.markdown(f"<div class='wow-mini'><b>{t(lang,'results')}</b></div>", unsafe_allow_html=True)
 
     total_hits = sum(len(v) for v in search_results.values())
@@ -1569,7 +1634,6 @@ def dashboard_page():
         st.info(t(lang, "no_results"))
         return
 
-    # Build merged result frame (top N)
     rows = []
     for ds, items in search_results.items():
         for it in items[:200]:
@@ -1587,19 +1651,21 @@ def dashboard_page():
         f"GUDID ({len(search_results['gudid'])})",
     ])
 
-    def show_hits(df: pd.DataFrame):
+    def show_hits(df: pd.DataFrame, key_prefix: str):
+        """
+        FIX: Always pass unique `key_prefix` so all plotly charts use distinct keys.
+        This prevents StreamlitDuplicateElementId in multi-tab rendering.
+        """
         if df is None or df.empty:
             st.write("—")
             return
 
-        # timeline: choose a date column if exists
         date_col = None
         for c in ["decision_date", "event_date", "report_date", "publish_date"]:
             if c in df.columns:
                 date_col = c
                 break
 
-        # distribution: choose a category column if exists
         cat_col = None
         for c in ["device_class", "recall_class", "decision", "panel", "product_code", "status", "_dataset"]:
             if c in df.columns:
@@ -1615,7 +1681,7 @@ def dashboard_page():
                 tmp = tmp.dropna(subset=[date_col])
                 if not tmp.empty:
                     fig = px.scatter(tmp.sort_values(date_col), x=date_col, y="_dataset", size="_score", hover_data=tmp.columns)
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, use_container_width=True, key=f"{key_prefix}_timeline")
                 else:
                     st.write("—")
             else:
@@ -1629,7 +1695,7 @@ def dashboard_page():
                 agg = tmp[cat_col].value_counts().reset_index()
                 agg.columns = [cat_col, "count"]
                 fig = px.pie(agg.head(12), names=cat_col, values="count", hole=0.55)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True, key=f"{key_prefix}_dist")
                 st.caption(t(lang, "select_to_filter"))
             else:
                 st.write("—")
@@ -1638,23 +1704,26 @@ def dashboard_page():
         st.dataframe(df.sort_values("_score", ascending=False).head(200), use_container_width=True, height=420)
 
     with tabs[0]:
-        show_hits(df_hits)
+        show_hits(df_hits, key_prefix="dash_all")
     with tabs[1]:
-        show_hits(df_hits[df_hits["_dataset"] == "510k"] if not df_hits.empty else pd.DataFrame())
+        show_hits(df_hits[df_hits["_dataset"] == "510k"] if not df_hits.empty else pd.DataFrame(), key_prefix="dash_510k")
     with tabs[2]:
-        show_hits(df_hits[df_hits["_dataset"] == "recall"] if not df_hits.empty else pd.DataFrame())
+        show_hits(df_hits[df_hits["_dataset"] == "recall"] if not df_hits.empty else pd.DataFrame(), key_prefix="dash_recall")
     with tabs[3]:
-        show_hits(df_hits[df_hits["_dataset"] == "adr"] if not df_hits.empty else pd.DataFrame())
+        show_hits(df_hits[df_hits["_dataset"] == "adr"] if not df_hits.empty else pd.DataFrame(), key_prefix="dash_adr")
     with tabs[4]:
-        show_hits(df_hits[df_hits["_dataset"] == "gudid"] if not df_hits.empty else pd.DataFrame())
+        show_hits(df_hits[df_hits["_dataset"] == "gudid"] if not df_hits.empty else pd.DataFrame(), key_prefix="dash_gudid")
+
 
 # ============================================================
-# Dataset Studio Page (default/paste/upload + preview + standardize)
+# Dataset Studio Page
 # ============================================================
 def dataset_studio_page():
     st.markdown(f"<div class='wow-card'><h3 style='margin:0'>{t(lang,'nav_datasets')}</h3></div>", unsafe_allow_html=True)
 
-    ds_type = st.selectbox("Dataset type", ["510k", "recall", "adr", "gudid"], index=["510k","recall","adr","gudid"].index(st.session_state["ds_selected_type"]), key="ds_type_sel")
+    ds_type = st.selectbox("Dataset type", ["510k", "recall", "adr", "gudid"],
+                           index=["510k", "recall", "adr", "gudid"].index(st.session_state["ds_selected_type"]),
+                           key="ds_type_sel")
     st.session_state["ds_selected_type"] = ds_type
 
     source_mode = st.radio(
@@ -1691,7 +1760,7 @@ def dataset_studio_page():
                 st.error(f"Parse failed: {e}")
         df_in = st.session_state.get("ds_tmp_df")
 
-    else:  # upload
+    else:
         up = st.file_uploader(f"{t(lang,'upload')} dataset file (CSV/JSON/TXT)", type=["csv", "json", "txt"], key="ds_upload_file")
         if up:
             try:
@@ -1733,7 +1802,6 @@ def dataset_studio_page():
         with st.expander(t(lang, "standardization_report"), expanded=False):
             st.markdown(st.session_state["ds_report"])
 
-    # show current standardized dataset in session
     cur_df = st.session_state["dfs"][ds_type]
     st.markdown(f"<div class='wow-mini'><b>{t(lang,'preview')} (standardized)</b></div>", unsafe_allow_html=True)
     st.caption(f"{t(lang,'loaded_rows')}: {len(cur_df)} | loaded_from: {st.session_state['dataset_loaded_from']}")
@@ -1741,12 +1809,15 @@ def dataset_studio_page():
 
     d1, d2 = st.columns([1, 1])
     with d1:
-        st.download_button(t(lang, "download_csv"), data=cur_df.to_csv(index=False).encode("utf-8"), file_name=f"{ds_type}_standardized.csv", use_container_width=True)
+        st.download_button(t(lang, "download_csv"), data=cur_df.to_csv(index=False).encode("utf-8"),
+                           file_name=f"{ds_type}_standardized.csv", use_container_width=True, key="dl_csv_std")
     with d2:
-        st.download_button(t(lang, "download_json"), data=df_to_json_records(cur_df).encode("utf-8"), file_name=f"{ds_type}_standardized.json", use_container_width=True)
+        st.download_button(t(lang, "download_json"), data=df_to_json_records(cur_df).encode("utf-8"),
+                           file_name=f"{ds_type}_standardized.json", use_container_width=True, key="dl_json_std")
+
 
 # ============================================================
-# Agent Studio Page (YAML editor + cards + optional LLM standardizer)
+# Agent Studio Page
 # ============================================================
 def agent_studio_page():
     st.markdown(f"<div class='wow-card'><h3 style='margin:0'>{t(lang,'nav_agents')}</h3></div>", unsafe_allow_html=True)
@@ -1772,40 +1843,17 @@ def agent_studio_page():
         else:
             st.success(t(lang, "yaml_loaded"))
             st.session_state["agents_cfg"] = cfg
-            # persist best-effort
             safe_write_text(AGENTS_PATH, st.session_state["agents_yaml_text"])
 
-        btn1, btn2, btn3 = st.columns([1, 1, 1])
+        btn1, btn2 = st.columns([1, 1])
         with btn1:
-            st.download_button(t(lang, "download_yaml"), dump_agents_yaml(st.session_state["agents_cfg"]), file_name="agents.yaml", use_container_width=True)
+            st.download_button(t(lang, "download_yaml"), dump_agents_yaml(st.session_state["agents_cfg"]),
+                               file_name="agents.yaml", use_container_width=True, key="dl_agents_yaml")
         with btn2:
-            if st.button(t(lang, "reset_agents"), use_container_width=True):
+            if st.button(t(lang, "reset_agents"), use_container_width=True, key="reset_agents_btn"):
                 st.session_state["agents_yaml_text"] = DEFAULT_AGENTS_YAML
                 safe_write_text(AGENTS_PATH, DEFAULT_AGENTS_YAML)
                 st.rerun()
-        with btn3:
-            # optional LLM-based standardizer
-            with st.popover(t(lang, "auto_standardize_llm")):
-                pmap = provider_model_map()
-                prov = st.selectbox(t(lang, "provider"), list(pmap.keys()), index=0, key="agents_std_prov")
-                model = st.selectbox(t(lang, "model"), pmap[prov], index=0, key="agents_std_model")
-                if st.button(t(lang, "standardize"), use_container_width=True, key="agents_std_run"):
-                    env_primary = {"openai": "OPENAI_API_KEY", "gemini": "GEMINI_API_KEY", "anthropic": "ANTHROPIC_API_KEY", "xai": "XAI_API_KEY"}[prov]
-                    api_key, src = get_api_key(env_primary)
-                    if not api_key:
-                        st.error(f"{env_primary} missing.")
-                    else:
-                        before = st.session_state["agents_yaml_text"]
-                        try:
-                            after = llm_standardize_agents_yaml(before, prov, model, api_key, lang)
-                            d = unified_diff(before, after)
-                            st.code(d, language="diff")
-                            if st.button("Apply standardized YAML", use_container_width=True, key="agents_std_apply"):
-                                st.session_state["agents_yaml_text"] = after
-                                safe_write_text(AGENTS_PATH, after)
-                                st.rerun()
-                        except Exception as e:
-                            st.error(f"LLM standardize failed: {e}")
 
     with right:
         st.markdown(f"<div class='wow-mini'><b>{t(lang,'agent_cards')}</b></div>", unsafe_allow_html=True)
@@ -1814,7 +1862,6 @@ def agent_studio_page():
         if not agents:
             st.info("No agents loaded.")
         else:
-            # card grid
             for a in agents:
                 st.markdown(
                     f"""
@@ -1834,6 +1881,7 @@ def agent_studio_page():
                     """,
                     unsafe_allow_html=True,
                 )
+
 
 # ============================================================
 # Command Center Page (Workspace + Agent Pipeline + Final Report)
@@ -1876,7 +1924,6 @@ def command_center_page():
                                 trimmed = trim_pdf_bytes(st.session_state["pdf_bytes"], pr)
                                 st.session_state["trimmed_pdf_bytes"] = trimmed
                                 st.session_state["raw_text"] = extract_text_pypdf2(trimmed)
-                                # default OCR text = raw text layer (until OCR run)
                                 st.session_state["ocr_text"] = st.session_state["raw_text"]
                                 st.success("Trim/Extract done.")
                             except Exception as e:
@@ -1884,7 +1931,8 @@ def command_center_page():
 
                     with b:
                         trimmed = st.session_state["trimmed_pdf_bytes"] or st.session_state["pdf_bytes"]
-                        st.download_button(t(lang, "download_trimmed"), data=trimmed, file_name="trimmed.pdf", use_container_width=True)
+                        st.download_button(t(lang, "download_trimmed"), data=trimmed, file_name="trimmed.pdf",
+                                           use_container_width=True, key="doc_dl_trimmed")
 
                     if render_preview:
                         st.markdown(render_pdf_iframe(st.session_state["trimmed_pdf_bytes"] or st.session_state["pdf_bytes"]), unsafe_allow_html=True)
@@ -1896,6 +1944,20 @@ def command_center_page():
                         index=0,
                         key="doc_ocr_engine",
                     )
+
+                    # FIX: stable vision controls outside the button handler (only shown if needed)
+                    vision_provider = st.session_state.get("doc_vision_provider", "openai")
+                    vision_model = st.session_state.get("doc_vision_model", OPENAI_MODELS[0])
+
+                    if ocr_engine == t(lang, "vision_ocr"):
+                        vp = st.selectbox("Vision provider", ["openai", "gemini"], index=0 if vision_provider == "openai" else 1, key="doc_vision_provider_sel")
+                        st.session_state["doc_vision_provider"] = vp
+                        vm_list = provider_model_map()[vp]
+                        default_ix = 0
+                        if st.session_state.get("doc_vision_model") in vm_list:
+                            default_ix = vm_list.index(st.session_state["doc_vision_model"])
+                        vm = st.selectbox("Vision model", vm_list, index=default_ix, key="doc_vision_model_sel")
+                        st.session_state["doc_vision_model"] = vm
 
                     if st.button(t(lang, "run_ocr"), use_container_width=True, key="doc_run_ocr"):
                         try:
@@ -1914,8 +1976,8 @@ def command_center_page():
                                 st.session_state["ocr_text"] = "\n".join(pages).strip()
 
                             else:
-                                vprov = st.selectbox("Vision provider", ["openai", "gemini"], index=0, key="doc_vision_provider")
-                                vmodel = st.selectbox("Vision model", provider_model_map()[vprov], index=0, key="doc_vision_model")
+                                vprov = st.session_state.get("doc_vision_provider", "openai")
+                                vmodel = st.session_state.get("doc_vision_model", provider_model_map()[vprov][0])
                                 env_primary = {"openai": "OPENAI_API_KEY", "gemini": "GEMINI_API_KEY"}[vprov]
                                 api_key, src = get_api_key(env_primary)
                                 if not api_key:
@@ -1935,7 +1997,6 @@ def command_center_page():
                 height=420,
                 key="doc_paste_text_area",
             )
-            # treat as OCR text
             st.session_state["ocr_text"] = st.session_state["doc_text_override"]
             st.session_state["raw_text"] = st.session_state["doc_text_override"]
 
@@ -1963,7 +2024,6 @@ def command_center_page():
         st.markdown(f"<div class='wow-card'><h4 style='margin:0'>{t(lang,'intelligence')}</h4></div>", unsafe_allow_html=True)
         tabs = st.tabs([t(lang, "agent_pipeline"), t(lang, "final_report"), t(lang, "results")])
 
-        # -------- Agent Pipeline tab --------
         with tabs[0]:
             cfg = st.session_state["agents_cfg"]
             agents = cfg.get("agents", [])
@@ -1974,17 +2034,17 @@ def command_center_page():
                 pick = st.selectbox(t(lang, "agent"), agent_names, index=0, key="pipeline_agent_pick")
                 agent = agents[agent_names.index(pick)]
 
-                # user override controls per run (required)
                 pmap = provider_model_map()
-                provider = st.selectbox(t(lang, "provider"), list(pmap.keys()), index=list(pmap.keys()).index(agent.get("provider","openai")) if agent.get("provider","openai") in pmap else 0, key="pipeline_provider")
+                provider = st.selectbox(t(lang, "provider"), list(pmap.keys()),
+                                        index=list(pmap.keys()).index(agent.get("provider", "openai")) if agent.get("provider", "openai") in pmap else 0,
+                                        key="pipeline_provider")
                 model = st.selectbox(t(lang, "model"), pmap[provider], index=0, key="pipeline_model")
                 max_tokens = st.number_input(t(lang, "max_tokens"), min_value=512, max_value=12000, value=12000, step=256, key="pipeline_max_tokens")
                 temperature = st.slider(t(lang, "temperature"), 0.0, 1.0, float(agent.get("temperature", 0.2)), 0.05, key="pipeline_temp")
 
-                system_prompt = st.text_area(t(lang, "system_prompt"), value=str(agent.get("system_prompt","")), height=140, key="pipeline_system")
-                user_prompt = st.text_area(t(lang, "user_prompt"), value=str(agent.get("user_prompt","")), height=140, key="pipeline_user")
+                system_prompt = st.text_area(t(lang, "system_prompt"), value=str(agent.get("system_prompt", "")), height=140, key="pipeline_system")
+                user_prompt = st.text_area(t(lang, "user_prompt"), value=str(agent.get("user_prompt", "")), height=140, key="pipeline_user")
 
-                # choose input source
                 last_edited = st.session_state["agent_runs"][-1]["edited_output"] if st.session_state["agent_runs"] else ""
                 source = st.radio(
                     t(lang, "input_source"),
@@ -2010,11 +2070,12 @@ def command_center_page():
                             full_user = f"{user_prompt.strip()}\n\n---\nINPUT:\n{base_input}"
                             try:
                                 with st.spinner("Running agent..."):
-                                    out = call_llm_text(provider, model, api_key, full_system, full_user, max_tokens=int(max_tokens), temperature=float(temperature))
+                                    out = call_llm_text(provider, model, api_key, full_system, full_user,
+                                                        max_tokens=int(max_tokens), temperature=float(temperature))
                                 st.session_state["agent_runs"].append({
                                     "ts": datetime.datetime.utcnow().isoformat(),
-                                    "agent_id": agent.get("id",""),
-                                    "agent_name": agent.get("name",""),
+                                    "agent_id": agent.get("id", ""),
+                                    "agent_name": agent.get("name", ""),
                                     "provider": provider,
                                     "model": model,
                                     "max_tokens": int(max_tokens),
@@ -2035,7 +2096,8 @@ def command_center_page():
                 with runB:
                     if st.button(t(lang, "append_final"), use_container_width=True, key="pipeline_append_final"):
                         if st.session_state["agent_runs"]:
-                            st.session_state["final_report"] = (st.session_state["final_report"].strip() + "\n\n" + st.session_state["agent_runs"][-1]["edited_output"]).strip()
+                            st.session_state["final_report"] = (st.session_state["final_report"].strip() + "\n\n" +
+                                                                st.session_state["agent_runs"][-1]["edited_output"]).strip()
                             st.success("Appended.")
                             st.rerun()
 
@@ -2053,12 +2115,11 @@ def command_center_page():
                             view = st.radio(
                                 "View",
                                 [t(lang, "markdown"), t(lang, "text_view")],
-                                index=0 if run.get("view_mode","markdown") == "markdown" else 1,
+                                index=0 if run.get("view_mode", "markdown") == "markdown" else 1,
                                 horizontal=True,
                                 key=f"run_view_{idx}",
                             )
                             st.session_state["agent_runs"][idx]["view_mode"] = "markdown" if view == t(lang, "markdown") else "text"
-
                             if st.session_state["agent_runs"][idx]["view_mode"] == "markdown":
                                 safe_md_render(run["output"])
                             else:
@@ -2072,7 +2133,6 @@ def command_center_page():
                                 key=f"run_edit_{idx}",
                             )
 
-        # -------- Final Report tab --------
         with tabs[1]:
             rtabs = st.tabs([t(lang, "markdown"), t(lang, "render")])
             with rtabs[0]:
@@ -2085,7 +2145,6 @@ def command_center_page():
             with rtabs[1]:
                 safe_md_render(st.session_state["final_report"])
 
-        # -------- Results tab (search results quick view) --------
         with tabs[2]:
             total_hits = sum(len(v) for v in search_results.values())
             st.markdown(f"<div class='wow-mini'><b>{t(lang,'results')}</b> — {total_hits}</div>", unsafe_allow_html=True)
@@ -2101,13 +2160,13 @@ def command_center_page():
                         rows.append(r)
                 st.dataframe(pd.DataFrame(rows).sort_values("_score", ascending=False), use_container_width=True, height=520)
 
+
 # ============================================================
-# Factory Page (Batch PDFs)
+# Factory Page
 # ============================================================
 def factory_page():
     st.markdown(f"<div class='wow-card'><h3 style='margin:0'>{t(lang,'factory')}</h3></div>", unsafe_allow_html=True)
 
-    # Input: root dir or zip upload
     root_dir = st.text_input(t(lang, "root_dir"), value="", key="factory_root_dir")
     zip_up = st.file_uploader(t(lang, "upload_zip"), type=["zip"], key="factory_zip")
 
@@ -2126,7 +2185,6 @@ def factory_page():
         st.caption(f"PDFs found: {len(pdf_paths)}")
 
     if st.button(t(lang, "scan"), use_container_width=True, key="factory_scan_btn"):
-        # just rerun to refresh
         st.rerun()
 
     if pdf_paths:
@@ -2143,13 +2201,12 @@ def factory_page():
 
         st.divider()
         pmap = provider_model_map()
-        prov = st.selectbox(t(lang, "provider"), ["openai", "gemini"], index=0, key="factory_provider")  # summarization uses these by default
+        prov = st.selectbox(t(lang, "provider"), ["openai", "gemini"], index=0, key="factory_provider")
         model = st.selectbox(t(lang, "model"), pmap[prov], index=0, key="factory_model")
 
         a, b, c = st.columns([1, 1, 1])
         with a:
-            if st.button(t(lang, "trim_page1"), use_container_width=True, key="factory_trim_btn"):
-                st.success("Trim step will occur during summarization step (keeps runtime minimal).")
+            st.button(t(lang, "trim_page1"), use_container_width=True, key="factory_trim_btn")
 
         with b:
             if st.button(t(lang, "summarize"), use_container_width=True, key="factory_summarize_btn"):
@@ -2161,27 +2218,18 @@ def factory_page():
                     items = []
                     manifest = st.session_state["factory_manifest"].copy()
                     with st.spinner("Batch summarizing..."):
-                        for i, row in manifest.iterrows():
+                        for _, row in manifest.iterrows():
                             path = row["path"]
                             try:
                                 trimmed = trim_first_page_to_bytes(path)
                                 txt = extract_text_pypdf2(trimmed)
                                 if not txt.strip():
-                                    # fallback local OCR for 1st page only
                                     images = convert_from_bytes(trimmed, dpi=220)
                                     txt = pytesseract.image_to_string(images[0]) if images else ""
                                 summary_md = summarize_cover(prov, model, api_key, txt[:9000], lang=lang)
-                                items.append({
-                                    "file_name": row["file_name"],
-                                    "path": path,
-                                    "summary_md": summary_md,
-                                })
+                                items.append({"file_name": row["file_name"], "path": path, "summary_md": summary_md})
                             except Exception as e:
-                                items.append({
-                                    "file_name": row["file_name"],
-                                    "path": path,
-                                    "summary_md": f"**Error:** {e}",
-                                })
+                                items.append({"file_name": row["file_name"], "path": path, "summary_md": f"**Error:** {e}"})
                     st.session_state["factory_items"] = items
                     st.success("Batch summarization complete.")
 
@@ -2199,8 +2247,10 @@ def factory_page():
             st.markdown(f"<div class='wow-mini'><b>Project_Master_ToC.md</b></div>", unsafe_allow_html=True)
             toc_tabs = st.tabs([t(lang, "markdown"), t(lang, "render")])
             with toc_tabs[0]:
-                st.session_state["factory_toc_md"] = st.text_area("Master ToC Markdown", value=st.session_state["factory_toc_md"], height=360, key="factory_toc_editor")
-                st.download_button("Download Project_Master_ToC.md", data=st.session_state["factory_toc_md"].encode("utf-8"), file_name="Project_Master_ToC.md", use_container_width=True)
+                st.session_state["factory_toc_md"] = st.text_area("Master ToC Markdown", value=st.session_state["factory_toc_md"],
+                                                                  height=360, key="factory_toc_editor")
+                st.download_button("Download Project_Master_ToC.md", data=st.session_state["factory_toc_md"].encode("utf-8"),
+                                   file_name="Project_Master_ToC.md", use_container_width=True, key="dl_master_toc")
             with toc_tabs[1]:
                 safe_md_render(st.session_state["factory_toc_md"])
 
@@ -2212,8 +2262,9 @@ def factory_page():
                 st.success("Master ToC set as current document for agents.")
                 st.rerun()
 
+
 # ============================================================
-# AI Note Keeper Page (magics + keyword color + style AI)
+# AI Note Keeper Page
 # ============================================================
 def note_keeper_page():
     st.markdown(f"<div class='wow-card'><h3 style='margin:0'>{t(lang,'note_keeper')}</h3></div>", unsafe_allow_html=True)
@@ -2242,9 +2293,8 @@ def note_keeper_page():
 
         magic = st.selectbox("Magic", NOTE_MAGICS, index=0, key="note_magic_pick")
 
-        # Additional WOW feature: AI Magic pick painter style (LLM) OR Jackpot
         with st.expander(t(lang, "style_ai_pick"), expanded=False):
-            st.caption("Pick a painter style using AI or Jackpot (uses note content as context).")
+            st.caption(t(lang, "style_ai_help"))
             if st.button(t(lang, "jackpot"), use_container_width=True, key="note_style_jackpot"):
                 st.session_state["style"] = jackpot_style()
                 st.rerun()
@@ -2255,24 +2305,18 @@ def note_keeper_page():
                 if not api_key:
                     st.error(f"{env_primary} missing.")
                 else:
-                    style_list = "\n".join([f"- {s['name']} (id={s['id']})" for s in PAINTER_STYLES])
-                    sys = "You pick an art style for UI theme. Output exactly one style id from the list."
-                    user = f"""Choose one painter style ID based on the note tone and domain (regulatory/clinical/engineering). Output ONLY the id.
-
-STYLES:
-{style_list}
-
-NOTE:
-{st.session_state['note_raw'][:6000]}
-"""
-                    sid = call_llm_text(provider, model, api_key, sys, user, max_tokens=50, temperature=0.2).strip().lower()
-                    chosen = next((s for s in PAINTER_STYLES if s["id"] == sid), None)
+                    ctx = "\n\n".join([
+                        f"QUERY:\n{st.session_state.get('global_query','')}",
+                        f"NOTE:\n{st.session_state.get('note_raw','')}",
+                        f"DOC:\n{st.session_state.get('ocr_text','')}",
+                    ]).strip()
+                    chosen = choose_style_with_ai(provider, model, api_key, ctx, lang=lang)
                     if chosen:
                         st.session_state["style"] = chosen
                         st.success(f"{t(lang,'style_recommended')}: {chosen['name']}")
                         st.rerun()
                     else:
-                        st.warning(f"AI returned unknown style id: {sid}")
+                        st.warning("AI returned unknown style id.")
 
         if magic != "AI Keywords Highlighter":
             if st.button(t(lang, "run_magic"), use_container_width=True, key="note_run_magic"):
@@ -2308,6 +2352,7 @@ NOTE:
         with tabC:
             html = st.session_state["note_render_html"] or coral_highlight(st.session_state["note_md"] or st.session_state["note_raw"])
             st.markdown(f"<div class='wow-card editor-frame'>{html}</div>", unsafe_allow_html=True)
+
 
 # ============================================================
 # Page router
